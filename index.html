@@ -1,0 +1,226 @@
+<html>
+<head>
+	<meta charset="utf-8">
+	<script>
+
+const Modifiers = {
+	"smallcaps": {
+		"A": "ᴀ",
+		"B": "ʙ",
+		"C": "ᴄ",
+		"D": "ᴅ",
+		"E": "ᴇ",
+		"F": "ꜰ",
+		"G": "ɢ",
+		"H": "ʜ",
+		"I": "ɪ",
+		"J": "ᴊ",
+		"K": "ᴋ",
+		"L": "ʟ",
+		"M": "ᴍ",
+		"N": "ɴ",
+		"O": "ᴏ",
+		"P": "ᴘ",
+		"Q": "ꞯ",
+		"R": "ʀ",
+		"S": "s",
+		"T": "ᴛ",
+		"U": "ᴜ",
+		"V": "ᴠ",
+		"W": "ᴡ",
+		"X": "x",
+		"Y": "ʏ",
+		"Z": "ᴢ",
+	},
+	"upper": [
+		{
+			"a": "\u0363",
+			"e": "\u0364",
+			"i": "\u0365",
+			"o": "\u0366",
+			"u": "\u0367",
+			"c": "\u0368",
+			"d": "\u0369",
+			"h": "\u036A",
+			"m": "\u036B",
+			"r": "\u036C",
+			"t": "\u036D",
+			"v": "\u036E",
+			"x": "\u036F"
+		},
+		{
+			"g": "\u2DE0",
+			"b": "\u2DE1\uA67A",
+			"r": "\u2DE2",
+			"k": "\u2DE6",
+			"m": "\u2DE8",
+			"h": "\u2DE9",
+			"o": "\u2DEA",
+			"n": "\u2DEB\uA675",
+			"p": "\u2DEC",
+			"c": "\u2DED",
+			"t": "\u2DEE",
+			"x": "\u2DEF",
+			"u": "\u2DF0",
+			"y": "\uA677\u2DF1\uA67D",
+			"w": "\u2DF2\uA67B",
+			"a": "\u2DF6",
+			"e": "\u2DF7\uA674",
+			"i": "\uA676"
+		},
+		{
+			"s": "\u033E"
+		}
+	],
+	"space": " "
+};
+
+var UpperSets = Modifiers.upper.map(x => Object.keys(x).sort());
+var PossibleUpper = new Set(UpperSets.reduce((a, x) => a.concat(x), []));
+
+
+function DecorateText(base, upperthing, smallcaps) {
+if(smallcaps) {
+	base = base.replace(/[A-Z]/g, x => Modifiers.smallcaps[x]);
+}
+
+
+upperthing = upperthing.toLowerCase().split('');
+
+let word = [...upperthing].sort();
+const wordl = word.length;
+
+
+let topSets = [];
+
+for(let i = 0; i < UpperSets.length; i++) {
+	const set = UpperSets[i];
+	const setl = set.length;
+	let wordi = 0;
+	let seti = 0;
+	let count = 0;
+	while(wordi < wordl && seti < setl) {
+		let wordc = word[wordi];
+		let setc = set[seti];
+		if(wordc === setc) {
+			wordi++;
+			count++;
+		}
+		else if(wordc < setc) {
+			wordi++;
+		}
+		else {
+			seti++;
+		}
+	}
+	
+	topSets.push([count, Modifiers.upper[i]]);
+}
+
+topSets.sort((a, b) => b[0] - a[0]);
+
+const getReplacements = (character) => {
+	let replacements = "";
+	for(let [, set] of topSets) {
+		let setReplacements = set[character];
+		if(setReplacements !== undefined)
+			replacements += setReplacements;
+	}
+	return replacements;
+};
+
+let replacements = upperthing.map(getReplacements);
+
+let usedbase = base.padEnd(replacements.length, "\u2000").split('');
+
+let result = "";
+for(let i = 0; i < replacements.length; i++) {
+	result += usedbase[i] + (replacements[i][0] || '');
+}
+
+if(base.length > replacements.length)
+	result += base.substr(replacements.length);
+
+return result;
+}
+
+function TextChanged() {
+	OUTPUT.value = DecorateText(INPUT.value, UPPER.value, Smallcaps);
+}
+
+var Smallcaps = true;
+function SettingsChanged() {
+	Smallcaps = SMALLCAPS.checked;
+	TextChanged();
+}
+
+
+function textDiff(a, b) {
+	let diff = 0;
+	for(let i = a.length - 1; i >= 0; i--) {
+		if(a[i] !== b[i]) diff++;
+	}
+	return diff;
+}
+function Caps() {
+	let input = INPUT.value;
+	let upper = input.toUpperCase();
+	let lower = input.toLowerCase();
+	INPUT.value = textDiff(input, lower) > textDiff(input, upper) ? lower : upper;
+	TextChanged();
+}
+function Space() {
+	let output = OUTPUT.value;
+	let pos = OUTPUT.selectionStart;
+	OUTPUT.value = output.substr(0, pos) + Modifiers.space + output.substr(pos);
+}
+function Font() {
+	OUTPUT.style.fontFamily = FONT.options[FONT.selectedIndex].value;
+}
+	</script>
+	<style>
+	*{margin:0}
+	body {
+		background: #b0ddec;
+		font-family: consolas;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+	textarea {
+		width: 700px;
+		height: 100px;
+		margin: 10px;
+	}
+	p, p * {
+		margin: 5px;
+		user-select: none;
+	}
+	label {
+		padding: 5px;
+		background: #f6f6f6;
+	}
+	button {
+		padding: 3px 5px;
+	}
+	</style>
+</head>
+<body>
+	<textarea oninput="TextChanged()" placeholder="<Bottom text here>" id="INPUT"></textarea>
+	<textarea oninput="TextChanged()" placeholder="<Upper text here>" id="UPPER"></textarea>
+	<textarea id="OUTPUT"></textarea>
+	<p>
+		<label><input type="checkbox" id="SMALLCAPS" onchange="SettingsChanged()" checked>Smallcaps</label>
+		<button onclick="Caps()">Caps</button>
+		<button onclick="Space()">Space</button>
+		<select onchange="Font()" id="FONT">
+			<option value="Consolas">Consolas</option>
+			<option value="Arial">Arial</option>
+			<option value="Times New Roman">Times New Roman</option>
+			<option value="Tahoma">Tahoma</option>
+			<option value="Verdana">Verdana</option>
+		</select>
+	</p>
+</body>
+</html>
